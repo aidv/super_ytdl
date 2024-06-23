@@ -139,6 +139,7 @@ module.exports = class Super_YTDL_Queue_Manager {
             var item = this.list[i]
             if (item.status !== 'failed') continue
             item.status = 'queued'
+            item.progress = 0
             delete item.errorMsg
         }
     }
