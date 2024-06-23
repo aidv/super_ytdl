@@ -5,6 +5,7 @@ class sk_ui_queue_list extends sk_ui_list {
         this.styling += ' fill'
 
         this.header.setup(_c => {
+            _c.padding = 8
             this.info = _c.add.fromNew(sk_ui_queue_list_info)
         })
 
@@ -12,11 +13,11 @@ class sk_ui_queue_list extends sk_ui_list {
     }
 
     addLinksToQueue(links){
-        for (var i in links){
-            var link = links[i]
-            this.addItem({label: link, url: link})
+        var res = sk.actions.addLinksToQueue({links: links})
+        
+        for (var id in res.added){
+            this.addItem({label: id, url: id})
         }
-        sk.actions.addLinksToQueue({links: links})
     }
 
     addItem(opt){
@@ -97,11 +98,13 @@ class sk_ui_queue_list extends sk_ui_list {
 }
 
 
-class sk_ui_queue_list_info extends sk_ui_list {
+class sk_ui_queue_list_info extends sk_ui_component {
     constructor(opt){
         super(opt)
 
-        //this.styling += ' '
+        this.styling += ' fullwidth'
+
+        this.add.fromNew(sk_ui_queue_list_info_outputPath)
 
         this.counterLabel = this.add.label(_c => {
         })
@@ -111,5 +114,40 @@ class sk_ui_queue_list_info extends sk_ui_list {
 
     setStats(total, iterated, queued, completed, failed){
         this.counterLabel.text = `📜 ${iterated} of ${total}  |  🕒 ${queued}  |  ✅ ${completed}  |  ⛔ ${failed}`
+    }
+}
+
+
+class sk_ui_queue_list_info_outputPath extends sk_ui_component {
+    constructor(opt){
+        super(opt)
+
+        this.styling += ' fullwidth'
+        this.vertical = false
+
+        this.pathLabel = this.add.input(_c => {
+            _c.styling += ' fullwidth'
+            _c.onChanged = res => {
+                this.setPath()
+            }
+        })
+
+        this.add.iconButton(_c => {
+            _c.icon = 'folder'
+        })
+
+        this.getPath()
+    }
+
+    async getPath(){
+        var res = await sk.actions.outputPath({action: 'get'})
+        this.pathLabel.value = res.path
+    }
+    
+    async setPath(){
+        var res = await sk.actions.outputPath({action: 'set', path: this.pathLabel.value})
+
+        this.pathLabel.color = 'green'
+        if (res.error) this.pathLabel.color = 'red'
     }
 }

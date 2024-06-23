@@ -4,9 +4,9 @@ class sk_ui_navbar extends sk_ui_component {
 
         this.vertical = false
 
-        this.add.iconButton(_c => {
-            _c.icon = 'linkify'
-
+        this.add.button(_c => {
+            _c.icon = 'plus'
+            _c.text = 'Add links'
             _c.hint({text: 'Add links to queue'})
 
             _c.onClick = ()=>{
@@ -14,7 +14,8 @@ class sk_ui_navbar extends sk_ui_component {
             }
         })
 
-        this.add.simpleActionBtn(_c => {
+        this.add.button(_c => {
+            _c.icon = 'sync'
             _c.text = 'Retry failed'
             _c.hint({text: 'Retry failed links'})
 
@@ -24,17 +25,41 @@ class sk_ui_navbar extends sk_ui_component {
         })
 
         this.add.spacer()
+
+        this.add.button(_c => {
+            _c.icon = 'play'
+            _c.label.moveBefore(_c._icon)
+            _c.text = 'Start'
+            _c.hint({text: 'Start ripping'})
+
+            _c.onClick = ()=>{
+                sk.actions.startRipping()
+            }
+        })
     }
 
     showAddLinks(){
         sk.app.add.prompter(_c => {
+            _c.closers = ['close', 'escape']
             _c.header.text = 'Add links to queue'
             _c.message.remove()
-
+            _c.promptContent.styling += ' fullwidth'
+            _c.promptContent.height = 256
+            _c.actionBtn.disabled = true
+            var actionBtn = _c.actionBtn
             var urlInput = _c.promptContent.add.textarea(_c => {
+                _c.styling += ' fullwidth fullheight'
+                _c.style.overflowWrap = 'unset'
+                _c.style.textWrap = 'nowrap'
+                _c.onChanged = val => {
+                    var validLinks = this.parseLinks(val)
+                    actionBtn.text = 'Add ' + validLinks.length + ' links'
+                    actionBtn.disabled = validLinks.length === 0
+                }
             })
 
-
+            _c.actionBtn.primary = true
+            _c.actionBtn.text = 'Add'
             _c.actionBtn.onClick = ()=>{
                 var validLinks = this.parseLinks(urlInput.value)
                 sk.toast.success(`Added ${validLinks.length} links`)

@@ -6,7 +6,6 @@ module.exports = class Super_YTDL_Queue_Manager {
         this.list = []
 
         this.loadList()
-        this.start()
     }
     
 
@@ -20,19 +19,19 @@ module.exports = class Super_YTDL_Queue_Manager {
 
         for (var i in data.queued){
             var queuedItem = data.queued[i]
-            var item = this.addLink(queuedItem.url)
+            var item = this.addLink(queuedItem.url).added
         }
 
         for (var i in data.completed){
             var completedItem = data.completed[i]
-            var item = this.addLink(completedItem.url)
+            var item = this.addLink(completedItem.url).added
             item.status = 'completed'
             item.progress = 100
         }
 
         for (var i in data.failed){
             var failedItem = data.failed[i]
-            var item = this.addLink(failedItem.url)
+            var item = this.addLink(failedItem.url).added
             item.progress = failedItem.progress
             item.status = 'failed'
             item.errorMsg = failedItem.errorMsg
@@ -46,10 +45,10 @@ module.exports = class Super_YTDL_Queue_Manager {
 
         for (var i in this.list){
             var item = this.list[i]
-            var info = {url: item.originalURL, status: item.status, errorMsg: item.errorMsg}
-            if (item.status === 'queued') data.queued[item.originalURL] = info
-            else if (item.status === 'completed') data.completed[item.originalURL] = info
-            else if (item.status === 'failed') data.failed[item.originalURL] = info
+            var info = {url: item.id, status: item.status, errorMsg: item.errorMsg}
+            if (item.status === 'queued') data.queued[item.id] = info
+            else if (item.status === 'completed') data.completed[item.id] = info
+            else if (item.status === 'failed') data.failed[item.id] = info
         }
 
         fs.writeJSONSync(super_ytdl.listPath, data)
@@ -58,17 +57,35 @@ module.exports = class Super_YTDL_Queue_Manager {
     /***************/
 
     addLinks(links, save = false){
-        for (var i in links) this.addLink(links[i])
+        var added = {}
+
+        for (var i in links){
+            var url = links[i]
+            var res = this.addLink(url)
+            if (res.added) added[url] = true
+        }
+
         if (save) this.saveList()
+
+        return added
     }
 
     addLink(url, save = false){
+        if (this.findByID(url)) return {existing: item}
+        
         var item = new Super_YTDL_Queue_Item({url: url})
         this.list.push(item)
 
         if (save) this.saveList()
 
-        return item
+        return {added: item}
+    }
+
+    findByID(id){
+        for (var i in this.list){
+            var item = this.list[i]
+            if (item.id === id) return item
+        }
     }
 
     start(){
@@ -104,7 +121,7 @@ module.exports = class Super_YTDL_Queue_Manager {
 
         for (var i in this.list){
             var item = this.list[i]
-            list[item.originalURL] = {status: item.status, progress: item.progress, errorMsg: item.errorMsg}
+            list[item.id] = {status: item.status, progress: item.progress, errorMsg: item.errorMsg}
         }
 
         return list
@@ -122,7 +139,7 @@ module.exports = class Super_YTDL_Queue_Manager {
 
 class Super_YTDL_Queue_Item {
     constructor(opt){
-        this.originalURL = opt.url
+        this.id = opt.url
         this.url = this.fixURL(opt.url)
 
         this.status = 'queued'
