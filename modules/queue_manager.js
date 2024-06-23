@@ -89,9 +89,16 @@ module.exports = class Super_YTDL_Queue_Manager {
     }
 
     start(){
+        if (this.timer) return
+
         this.timer = setInterval(()=>{
             this.tryNext()
         }, 1000)
+    }
+
+    stop(){
+        clearInterval(this.timer)
+        delete this.timer
     }
 
     tryNext(){
