@@ -11,4 +11,4 @@
 You can copy-paste URL of any video, including a list of URLs of videos.
 
 > **Note**:
-> This application uses [**SUperkraft**](https://github.com/superkraft-io/superkraft.git) under the hood as an engine to run the backend and the UI.
+> This application uses [**Superkraft**](https://github.com/superkraft-io/superkraft.git) under the hood as an engine to run the backend and the UI.
