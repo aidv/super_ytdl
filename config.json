@@ -1,0 +1,16 @@
+{
+    "isWhat": {
+        "env": "dev",
+        "beta": false
+    },
+
+    "webserver": {
+        "ports" : {"http": 8000, "https": 8001}
+    },
+    
+    "cert": {
+        "ca": "/sai/cert/site/super_ytdl.ca-bundle",
+        "cert": "/sai/cert/site/super_ytdl.crt",
+        "key": "/sai/cert/site/super_ytdl.key"
+    }
+}
