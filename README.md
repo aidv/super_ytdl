@@ -7,7 +7,7 @@
     <img src="/screenshots/1.png" alt="Icon" />
 </p>
 
-**Super YTDL** is an lets you download videos from YouTube.
+**Super YTDL** lets you download videos from YouTube.
 You can copy-paste URL of any video, including a list of URLs of videos.
 
 > **Note**:
