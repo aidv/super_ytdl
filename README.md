@@ -19,7 +19,7 @@ git submodule update --init --recursive
 node app
 ```
 
-Now visit `https://localhost:8000` in youw browser and start rippin!
+Now visit `https://localhost:8000` in your browser and start rippin!
 
 
 > **Note**:
