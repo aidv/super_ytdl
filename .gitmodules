@@ -1,2 +1,3 @@
 [submodule "superkraft"]
+    path = ./superkraft
 	url = https://github.com/superkraft-io/superkraft
