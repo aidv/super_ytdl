@@ -1,5 +1,7 @@
-var fs = require('fs-extra')
-var youtube = require('youtube-mp3-downloader')
+const fs = require('fs-extra')
+const ytmp3dl = require('youtube-mp3-downloader')
+const ytdl = require('ytdl-core')
+//const ytlist = require('youtube-playlist');
 
 module.exports = class Super_YTDL_Queue_Manager {
     constructor(){
@@ -143,6 +145,36 @@ module.exports = class Super_YTDL_Queue_Manager {
             delete item.errorMsg
         }
     }
+
+
+    validateURL(url, urlType){
+        return new Promise(async (resolve, reject) => {
+            if (urlType === 'video'){
+                var videoID = url.split('v=')[1]
+                try {
+                    await ytdl.getInfo(videoID, {})
+                    resolve()
+                }
+                catch(err) {
+                    reject()
+                }
+            }
+
+            if (urlType === 'playlist'){
+                var fixURL = url + '&tmp=0'
+                var playlistID = fixURL.split('list=')[1]
+                playlistID = playlistID.split('&')[0]
+                try {
+                    var res =  await ytlist(fixURL, 'url')
+                    resolve()
+                } catch(err) {
+                    reject()
+                }
+            }
+        })
+    }
+
+    
 }
 
 class Super_YTDL_Queue_Item {
@@ -172,7 +204,7 @@ class Super_YTDL_Queue_Item {
         var outPath = super_ytdl.outputPath
         fs.ensureDirSync(outPath)
 
-        var YD = new youtube({
+        var YD = new ytmp3dl({
             ffmpegPath: ffmpegPath,                 // FFmpeg binary location
             outputPath: outPath,                    // Output file location (default: the home directory)
             youtubeVideoQuality: 'highestaudio',    // Desired video quality (default: highestaudio)

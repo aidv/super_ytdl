@@ -8,6 +8,7 @@
     "fs-extra": "^11.2.0",
     "helmet": "^7.1.0",
     "youtube-mp3-downloader": "^0.7.11",
-    "ytdl-core": "^4.11.5"
+    "ytdl-core": "^4.11.5",
+    "ytpl": "^2.3.0"
   }
 }
