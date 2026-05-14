@@ -145,6 +145,11 @@ module.exports = class Super_YTDL_Queue_Manager {
         }
     }
 
+    clearCompleted(){
+        this.list = this.list.filter(item => item.status !== 'completed')
+        this.saveList()
+    }
+
 
     async validateURL(url, urlType){
         try {
@@ -179,35 +184,80 @@ class Super_YTDL_Queue_Item {
         const ffmpegPath = 'c:/ffmpeg/bin/ffmpeg' + binaryExt
 
         const outPath = super_ytdl.outputPath
+        const tmpPath = super_ytdl.outputRootPath + 'tmp/'
         fs.ensureDirSync(outPath)
+        fs.ensureDirSync(tmpPath)
 
-        const outputTemplate = outPath + '/%(title)s.%(ext)s'
+        // Step 1: download raw stream into tmp
+        const downloadTemplate = tmpPath + '%(title)s.%(ext)s'
 
         const proc = ytdlp.exec(this.url, {
-            extractAudio: true,
-            audioFormat: 'mp3',
-            audioQuality: 0,
+            format: 'bestaudio',
             ffmpegLocation: ffmpegPath,
-            output: outputTemplate,
+            output: downloadTemplate,
             noPlaylist: true,
             progress: true,
             newline: true
         })
 
+        let downloadedFile = null
+
         proc.stdout.on('data', (data) => {
-            const line = data.toString()
+            const line = data.toString().trim()
             const match = line.match(/\[download\]\s+(\d+\.?\d*)%/)
-            if (match) this.progress = parseFloat(match[1]).toFixed(2)
+            if (match) {
+                this.progress = (parseFloat(match[1]) / 2).toFixed(2) // 0-50% for download
+                return
+            }
+            const destMatch = line.match(/\[download\] Destination:\s+(.+)/)
+            if (destMatch) downloadedFile = destMatch[1].trim()
         })
 
         proc.on('close', (code) => {
-            if (code === 0) {
-                this.status = 'completed'
-                this.progress = 100
-            } else {
+            if (code !== 0) {
                 this.status = 'failed'
-                this.errorMsg = 'yt-dlp exited with code ' + code
+                this.errorMsg = 'yt-dlp download exited with code ' + code
+                return
             }
+
+            if (!downloadedFile) {
+                // fallback: find the file we just downloaded in tmp
+                const files = fs.readdirSync(tmpPath)
+                if (files.length === 0) {
+                    this.status = 'failed'
+                    this.errorMsg = 'Downloaded file not found in tmp'
+                    return
+                }
+                downloadedFile = tmpPath + files[files.length - 1]
+            }
+
+            // Step 2: extract audio into tmp
+            const baseName = require('path').basename(downloadedFile, require('path').extname(downloadedFile))
+            const tmpMp3 = tmpPath + baseName + '.mp3'
+
+            // Use ffmpeg directly to convert the already-downloaded file
+            const { execFile } = require('child_process')
+            execFile(ffmpegPath, ['-y', '-i', downloadedFile, '-vn', '-acodec', 'libmp3lame', '-q:a', '0', tmpMp3], (err) => {
+                if (err) {
+                    this.status = 'failed'
+                    this.errorMsg = err.message
+                    fs.remove(downloadedFile).catch(() => {})
+                    return
+                }
+
+                this.progress = 75
+
+                // Step 3: move mp3 from tmp to output folder
+                const finalPath = outPath + baseName + '.mp3'
+                fs.move(tmpMp3, finalPath, { overwrite: true }).then(() => {
+                    fs.remove(downloadedFile).catch(() => {})
+                    this.status = 'completed'
+                    this.progress = 100
+                }).catch((moveErr) => {
+                    this.status = 'failed'
+                    this.errorMsg = moveErr.message
+                })
+            })
         })
 
         proc.on('error', (err) => {

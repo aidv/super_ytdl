@@ -52,6 +52,15 @@ class sk_ui_queue_list extends sk_ui_list {
     async refreshStatuses(){
         var res = await sk.actions.getQueueItemsStatuses()
 
+        // Remove frontend items that are no longer in the backend list
+        for (var i = this.list.length - 1; i >= 0; i--){
+            var item = this.list[i]
+            if (!res.list[item.info.label]){
+                item.remove()
+                this.list.splice(i, 1)
+            }
+        }
+
         var stats = {
             count: 0,
             iterated: 0,

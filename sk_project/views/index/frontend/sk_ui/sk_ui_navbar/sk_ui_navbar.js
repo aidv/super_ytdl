@@ -36,6 +36,16 @@ class sk_ui_navbar extends sk_ui_component {
             }
         })
 
+        this.add.button(_c => {
+            _c.icon = 'check'
+            _c.text = 'Clear completed'
+            _c.hint({text: 'Remove completed downloads from the list'})
+
+            _c.onClick = ()=>{
+                sk.actions.clearCompleted()
+            }
+        })
+
         this.add.spacer()
 
         this.add.button(_c => {
