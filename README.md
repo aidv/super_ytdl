@@ -16,6 +16,7 @@ You can copy-paste URL of any video, including a list of URLs of videos.
 git clone https://github.com/aidv/super_ytdl.git
 cd super_ytdl
 git submodule update --init --recursive
+npm install
 node app
 ```
 

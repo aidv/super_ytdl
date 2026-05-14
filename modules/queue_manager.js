@@ -1,6 +1,5 @@
 const fs = require('fs-extra')
-const ytmp3dl = require('youtube-mp3-downloader')
-const ytdl = require('ytdl-core')
+const ytdlp = require('yt-dlp-exec')
 //const ytlist = require('youtube-playlist');
 
 module.exports = class Super_YTDL_Queue_Manager {
@@ -147,31 +146,12 @@ module.exports = class Super_YTDL_Queue_Manager {
     }
 
 
-    validateURL(url, urlType){
-        return new Promise(async (resolve, reject) => {
-            if (urlType === 'video'){
-                var videoID = url.split('v=')[1]
-                try {
-                    await ytdl.getInfo(videoID, {})
-                    resolve()
-                }
-                catch(err) {
-                    reject()
-                }
-            }
-
-            if (urlType === 'playlist'){
-                var fixURL = url + '&tmp=0'
-                var playlistID = fixURL.split('list=')[1]
-                playlistID = playlistID.split('&')[0]
-                try {
-                    var res =  await ytlist(fixURL, 'url')
-                    resolve()
-                } catch(err) {
-                    reject()
-                }
-            }
-        })
+    async validateURL(url, urlType){
+        try {
+            await ytdlp(url, { dumpSingleJson: true, noWarnings: true, simulate: true })
+        } catch(err) {
+            throw err
+        }
     }
 
     
@@ -194,47 +174,45 @@ class Super_YTDL_Queue_Item {
     download(){
         this.status = 'busy'
 
-        var ytID = this.url.split('=')[1]
+        const isWin     = process.platform === 'win32'
+        const binaryExt = (isWin ? '.exe' : '')
+        const ffmpegPath = 'c:/ffmpeg/bin/ffmpeg' + binaryExt
 
-        var isWin     = process.platform === 'win32'
-        var binaryExt = (isWin ? '.exe' : '')
-
-        var ffmpegPath = 'c:/ffmpeg/bin/ffmpeg' + binaryExt
-
-        var outPath = super_ytdl.outputPath
+        const outPath = super_ytdl.outputPath
         fs.ensureDirSync(outPath)
 
-        var YD = new ytmp3dl({
-            ffmpegPath: ffmpegPath,                 // FFmpeg binary location
-            outputPath: outPath,                    // Output file location (default: the home directory)
-            youtubeVideoQuality: 'highestaudio',    // Desired video quality (default: highestaudio)
-            queueParallelism: 1,                    // Download parallelism (default: 1)
-            progressTimeout: 10,                  // Interval in ms for the progress reports (default: 1000)
-            allowWebm: false                        // Enable download from WebM sources (default: false)
+        const outputTemplate = outPath + '/%(title)s.%(ext)s'
+
+        const proc = ytdlp.exec(this.url, {
+            extractAudio: true,
+            audioFormat: 'mp3',
+            audioQuality: 0,
+            ffmpegLocation: ffmpegPath,
+            output: outputTemplate,
+            noPlaylist: true,
+            progress: true,
+            newline: true
         })
 
-        
+        proc.stdout.on('data', (data) => {
+            const line = data.toString()
+            const match = line.match(/\[download\]\s+(\d+\.?\d*)%/)
+            if (match) this.progress = parseFloat(match[1]).toFixed(2)
+        })
 
-        YD.on('finished', (err, data)=>{
-            if (err){
+        proc.on('close', (code) => {
+            if (code === 0) {
+                this.status = 'completed'
+                this.progress = 100
+            } else {
                 this.status = 'failed'
-                this.errorMsg = JSON.stringify(error)
-                return
+                this.errorMsg = 'yt-dlp exited with code ' + code
             }
-            
-            this.status = 'completed'
-        })
-        
-        YD.on('error', error => {
-            this.status = 'failed'
-            this.errorMsg = JSON.stringify(error)
-        })
-        
-        YD.on('progress', res => {
-            this.progress = res.progress.percentage.toFixed(2)
         })
 
-        
-        YD.download(ytID)
+        proc.on('error', (err) => {
+            this.status = 'failed'
+            this.errorMsg = err.message
+        })
     }
 }
